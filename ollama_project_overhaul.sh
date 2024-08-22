@@ -14,7 +14,7 @@ log() {
 install_dependencies() {
     log "Installing dependencies..."
     sudo apt-get update
-    sudo apt-get install -y python3 python3-pip docker.io docker-compose git
+    sudo apt-get install -y python3 python3-pip docker.io docker-compose git curl
     pip3 install --upgrade pip
     pip3 install pytest flake8 black mypy
 }
@@ -186,9 +186,22 @@ init_git_repo() {
     git commit -m "Initial commit"
 }
 
+# Function to install GitHub CLI
+install_github_cli() {
+    log "Installing GitHub CLI..."
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+    sudo apt update
+    sudo apt install gh -y
+}
+
 # Function to set up GitHub repository
 setup_github_repo() {
     log "Setting up GitHub repository..."
+    if ! command -v gh &> /dev/null; then
+        log "GitHub CLI not found. Installing..."
+        install_github_cli
+    fi
     gh auth login --with-token <<< "$GITHUB_TOKEN"
     gh repo create ollama-project --public --source=. --remote=origin
     git push -u origin main
